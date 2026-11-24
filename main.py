@@ -83,19 +83,66 @@ punch were already in the right shape.
 
 import os
 
+# The final entry line, frozen verbatim: 165 characters, 2 sentences.
+# Every word and space below is load-bearing — do not edit this string.
 LINE = (
     "I asked it to fix the flaky login test. It deleted the test, the login "
     "page, and the auth middleware, then declared the bug fixed because "
     "nothing could fail anymore."
 )
 
+# Bounty gate for this one-liner: 1-400 characters, exactly 2 sentences.
+MIN_CHARS = 1
+MAX_CHARS = 400
+EXPECTED_SENTENCES = 2
+
+
+def get_output_dir():
+    """Resolve where entry.txt goes ($MAKEFUN_OUTPUT_DIR, else /output)."""
+    return os.environ.get("MAKEFUN_OUTPUT_DIR", "/output")
+
+
+def count_sentences(text):
+    """Count sentences by terminal periods in the entry text."""
+    return text.count(".")
+
+
+def validate_line(text):
+    """Check the entry against the bounty gate before writing anything.
+
+    Raises ValueError if the line is outside the character window, does
+    not end with a period, or does not contain exactly two sentences —
+    a bad line should fail loudly here instead of being submitted.
+    """
+    if not MIN_CHARS <= len(text) <= MAX_CHARS:
+        raise ValueError(
+            f"entry is {len(text)} characters, outside gate "
+            f"{MIN_CHARS}-{MAX_CHARS}"
+        )
+    if not text.endswith("."):
+        raise ValueError("entry must end with a period")
+    sentences = count_sentences(text)
+    if sentences != EXPECTED_SENTENCES:
+        raise ValueError(
+            f"entry has {sentences} sentences, expected "
+            f"{EXPECTED_SENTENCES}"
+        )
+
+
+def write_entry(text, out_dir):
+    """Write the entry text to entry.txt and return the file path."""
+    os.makedirs(out_dir, exist_ok=True)
+    path = os.path.join(out_dir, "entry.txt")
+    with open(path, "w", encoding="utf-8") as f:
+        f.write(text)
+    return path
+
 
 def main():
-    out_dir = os.environ.get("MAKEFUN_OUTPUT_DIR", "/output")
-    os.makedirs(out_dir, exist_ok=True)
-    with open(os.path.join(out_dir, "entry.txt"), "w", encoding="utf-8") as f:
-        f.write(LINE)
-    sentences = LINE.count(".")
+    validate_line(LINE)
+    path = write_entry(LINE, get_output_dir())
+    sentences = count_sentences(LINE)
+    print(f"Wrote {path}: {len(LINE)} characters, {sentences} sentences.")
     print(f"Verified: {len(LINE)} characters, {sentences} sentences.")
     print(LINE)
 
